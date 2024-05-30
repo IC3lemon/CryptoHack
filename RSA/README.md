@@ -283,4 +283,229 @@ print(long_to_bytes(pt))
 ***
 <br><br><br>
 
-# 
+# Salty
+
+### Description :
+```
+Smallest exponent should be fastest, right?
+```
+```
+n = 110581795715958566206600392161360212579669637391437097703685154237017351570464767725324182051199901920318211290404777259728923614917211291562555864753005179326101890427669819834642007924406862482343614488768256951616086287044725034412802176312273081322195866046098595306261781788276570920467840172004530873767                                                                  
+e = 1
+ct = 44981230718212183604274785925793145442655465025264554046028251311164494127485
+```
+
+### Solution :
+
+I realised later that I overthought this and I ciphertext = plaintext \
+but oh well, still got the flag. here's what I did \
+so e = 1
+and we know, e*d = 1%phi
+==> d = 1%phi ==> `d=1`
+so flag = pow(ct,d,n)
+(*which is the same as ct^d %n i.e ct%n = ct*)
+
+```python
+from Crypto.Util.number import *
+import sympy as sp
+from factordb.factordb import FactorDB
+
+n = 110581795715958566206600392161360212579669637391437097703685154237017351570464767725324182051199901920318211290404777259728923614917211291562555864753005179326101890427669819834642007924406862482343614488768256951616086287044725034412802176312273081322195866046098595306261781788276570920467840172004530873767                                                                  
+e = 1
+ct = 44981230718212183604274785925793145442655465025264554046028251311164494127485
+
+d = 1
+pt = pow(ct,d,n)
+print(long_to_bytes(pt))
+
+# or just print(long_to_bytes(ct)) ;-;
+```
+
+![image](https://github.com/IC3lemon/CryptoHack/assets/150153966/aee295b8-1973-44c3-9f7d-0820752f7efd)
+
+
+<br><br><br>
+***
+<br><br><br>
+
+# Modulus Inutilis
+
+### Description : 
+```
+My primes should be more than large enough now!
+```
+```
+n = 17258212916191948536348548470938004244269544560039009244721959293554822498047075403658429865201816363311805874117705688359853941515579440852166618074161313773416434156467811969628473425365608002907061241714688204565170146117869742910273064909154666642642308154422770994836108669814632309362483307560217924183202838588431342622551598499747369771295105890359290073146330677383341121242366368309126850094371525078749496850520075015636716490087482193603562501577348571256210991732071282478547626856068209192987351212490642903450263288650415552403935705444809043563866466823492258216747445926536608548665086042098252335883
+e = 3
+ct = 243251053617903760309941844835411292373350655973075480264001352919865180151222189820473358411037759381328642957324889519192337152355302808400638052620580409813222660643570085177957
+```
+```
+#!/usr/bin/env python3
+
+from Crypto.Util.number import getPrime, inverse, bytes_to_long, long_to_bytes
+
+e = 3
+d = -1
+
+while d == -1:
+    p = getPrime(1024)
+    q = getPrime(1024)
+    phi = (p - 1) * (q - 1)
+    d = inverse(e, phi)
+
+n = p * q
+
+flag = b"XXXXXXXXXXXXXXXXXXXXXXX"
+pt = bytes_to_long(flag)
+ct = pow(pt, e, n)
+
+print(f"n = {n}")
+print(f"e = {e}")
+print(f"ct = {ct}")
+
+pt = pow(ct, d, n)
+decrypted = long_to_bytes(pt)
+assert decrypted == flag
+```
+
+### Solution :
+
+dear old e=3 reminded me of picoCTF mini-rsa \
+c = m^3 % n \
+and m^3 definitely << n since in this chall the guy made sure to get big primes \
+therefore... c = m^3 \
+just need to cube root c.
+
+```
+from Crypto.Util.number import *
+import sympy as sp
+from sympy.functions.elementary.miscellaneous import cbrt
+
+n = 17258212916191948536348548470938004244269544560039009244721959293554822498047075403658429865201816363311805874117705688359853941515579440852166618074161313773416434156467811969628473425365608002907061241714688204565170146117869742910273064909154666642642308154422770994836108669814632309362483307560217924183202838588431342622551598499747369771295105890359290073146330677383341121242366368309126850094371525078749496850520075015636716490087482193603562501577348571256210991732071282478547626856068209192987351212490642903450263288650415552403935705444809043563866466823492258216747445926536608548665086042098252335883
+e = 3
+ct = 243251053617903760309941844835411292373350655973075480264001352919865180151222189820473358411037759381328642957324889519192337152355302808400638052620580409813222660643570085177957
+
+print(long_to_bytes(cbrt(ct)))
+```
+
+
+<br><br><br>
+***
+<br><br><br>
+
+# Everything Is Big
+
+### Description :
+```
+We have a supercomputer at work, so I've made sure my encryption is secure by picking massive numbers!
+```
+```
+#!/usr/bin/env python3
+
+from Crypto.Util.number import getPrime, bytes_to_long
+
+FLAG = b"crypto{?????????????????????????}"
+
+m = bytes_to_long(FLAG)
+
+def get_huge_RSA():
+    p = getPrime(1024)
+    q = getPrime(1024)
+    N = p*q
+    phi = (p-1)*(q-1)
+    while True:
+        d = getPrime(256)
+        e = pow(d,-1,phi)
+        if e.bit_length() == N.bit_length():
+            break
+    return N,e
+
+
+N, e = get_huge_RSA()
+c = pow(m, e, N)
+
+print(f'N = {hex(N)}')
+print(f'e = {hex(e)}')
+print(f'c = {hex(c)}')
+```
+```
+N = 0xb8af3d3afb893a602de4afe2a29d7615075d1e570f8bad8ebbe9b5b9076594cf06b6e7b30905b6420e950043380ea746f0a14dae34469aa723e946e484a58bcd92d1039105871ffd63ffe64534b7d7f8d84b4a569723f7a833e6daf5e182d658655f739a4e37bd9f4a44aff6ca0255cda5313c3048f56eed5b21dc8d88bf5a8f8379eac83d8523e484fa6ae8dbcb239e65d3777829a6903d779cd2498b255fcf275e5f49471f35992435ee7cade98c8e82a8beb5ce1749349caa16759afc4e799edb12d299374d748a9e3c82e1cc983cdf9daec0a2739dadcc0982c1e7e492139cbff18c5d44529407edfd8e75743d2f51ce2b58573fea6fbd4fe25154b9964d
+e = 0x9ab58dbc8049b574c361573955f08ea69f97ecf37400f9626d8f5ac55ca087165ce5e1f459ef6fa5f158cc8e75cb400a7473e89dd38922ead221b33bc33d6d716fb0e4e127b0fc18a197daf856a7062b49fba7a86e3a138956af04f481b7a7d481994aeebc2672e500f3f6d8c581268c2cfad4845158f79c2ef28f242f4fa8f6e573b8723a752d96169c9d885ada59cdeb6dbe932de86a019a7e8fc8aeb07748cfb272bd36d94fe83351252187c2e0bc58bb7a0a0af154b63397e6c68af4314601e29b07caed301b6831cf34caa579eb42a8c8bf69898d04b495174b5d7de0f20cf2b8fc55ed35c6ad157d3e7009f16d6b61786ee40583850e67af13e9d25be3
+c = 0x3f984ff5244f1836ed69361f29905ca1ae6b3dcf249133c398d7762f5e277919174694293989144c9d25e940d2f66058b2289c75d1b8d0729f9a7c4564404a5fd4313675f85f31b47156068878e236c5635156b0fa21e24346c2041ae42423078577a1413f41375a4d49296ab17910ae214b45155c4570f95ca874ccae9fa80433a1ab453cbb28d780c2f1f4dc7071c93aff3924d76c5b4068a0371dff82531313f281a8acadaa2bd5078d3ddcefcb981f37ff9b8b14c7d9bf1accffe7857160982a2c7d9ee01d3e82265eec9c7401ecc7f02581fd0d912684f42d1b71df87a1ca51515aab4e58fab4da96e154ea6cdfb573a71d81b2ea4a080a1066e1bc3474
+```
+
+### Solution :
+
+Immediate issue was the huuge e. \
+instantly googles rsa when e huuge.
+![image](https://github.com/IC3lemon/CryptoHack/assets/150153966/760fd68c-a21f-4b5b-9c1b-cb664af3aaaa)
+
+![image](https://github.com/IC3lemon/CryptoHack/assets/150153966/103a9822-9e27-4de3-8b69-de00cba9d6ad)
+
+![image](https://github.com/IC3lemon/CryptoHack/assets/150153966/96bf376e-db8c-4703-88d2-3fc9570d05b2)
+
+after a good while, with the power of googling, I cooked this : \
+```python
+from Crypto.Util.number import *
+from sympy import *
+
+n = 0xb8af3d3afb893a602de4afe2a29d7615075d1e570f8bad8ebbe9b5b9076594cf06b6e7b30905b6420e950043380ea746f0a14dae34469aa723e946e484a58bcd92d1039105871ffd63ffe64534b7d7f8d84b4a569723f7a833e6daf5e182d658655f739a4e37bd9f4a44aff6ca0255cda5313c3048f56eed5b21dc8d88bf5a8f8379eac83d8523e484fa6ae8dbcb239e65d3777829a6903d779cd2498b255fcf275e5f49471f35992435ee7cade98c8e82a8beb5ce1749349caa16759afc4e799edb12d299374d748a9e3c82e1cc983cdf9daec0a2739dadcc0982c1e7e492139cbff18c5d44529407edfd8e75743d2f51ce2b58573fea6fbd4fe25154b9964d
+e = 0x9ab58dbc8049b574c361573955f08ea69f97ecf37400f9626d8f5ac55ca087165ce5e1f459ef6fa5f158cc8e75cb400a7473e89dd38922ead221b33bc33d6d716fb0e4e127b0fc18a197daf856a7062b49fba7a86e3a138956af04f481b7a7d481994aeebc2672e500f3f6d8c581268c2cfad4845158f79c2ef28f242f4fa8f6e573b8723a752d96169c9d885ada59cdeb6dbe932de86a019a7e8fc8aeb07748cfb272bd36d94fe83351252187c2e0bc58bb7a0a0af154b63397e6c68af4314601e29b07caed301b6831cf34caa579eb42a8c8bf69898d04b495174b5d7de0f20cf2b8fc55ed35c6ad157d3e7009f16d6b61786ee40583850e67af13e9d25be3
+c = 0x3f984ff5244f1836ed69361f29905ca1ae6b3dcf249133c398d7762f5e277919174694293989144c9d25e940d2f66058b2289c75d1b8d0729f9a7c4564404a5fd4313675f85f31b47156068878e236c5635156b0fa21e24346c2041ae42423078577a1413f41375a4d49296ab17910ae214b45155c4570f95ca874ccae9fa80433a1ab453cbb28d780c2f1f4dc7071c93aff3924d76c5b4068a0371dff82531313f281a8acadaa2bd5078d3ddcefcb981f37ff9b8b14c7d9bf1accffe7857160982a2c7d9ee01d3e82265eec9c7401ecc7f02581fd0d912684f42d1b71df87a1ca51515aab4e58fab4da96e154ea6cdfb573a71d81b2ea4a080a1066e1bc3474
+
+def cont_fracs(x,y):
+    # Converts a rational x/y fraction into a list of partial quotients [a0, ..., an]
+    a = x // y
+    pquotients = [a]
+    while a * y != x:
+        x, y = y, x - a * y
+        a = x // y
+        pquotients.append(a)
+    return pquotients
+
+def contfrac_to_rational (frac):
+    # Converts a finite continued fraction [a0, ..., an] to an x/y rational.
+    if len(frac) == 0: return (0,1)
+    num = frac[-1]
+    denom = 1
+    for _ in range(-2, -len(frac) - 1, -1): num, denom = frac[_] * num + denom, num
+    return (num, denom)
+
+def convergents(frac):
+    # computes the list of convergents from some [a0, ..., an]
+    convs = []
+    for i in range(len(frac)): convs.append(contfrac_to_rational(frac[0 : i]))
+    return convs
+
+def getthed(e, n):
+    frac = cont_fracs(e, n)
+    cgts = convergents(frac)
+    
+    for (k, d) in cgts:
+        if k != 0 and (e * d - 1) % k == 0:
+            phi = (e * d - 1) // k
+            s = n - phi + 1
+            # check if x*x - s*x + n = 0 has integer roots
+            D = s * s - 4 * n
+            if D >= 0:
+                sq = sqrt(D)
+                if sq * sq == D and (s + sq) % 2 == 0: return d
+
+d = getthed(e,n)
+print(long_to_bytes(pow(c,d,n)))
+```
+
+<br><br><br>
+***
+<br><br><br>
+
+# Crossed Wires
+
+### Description :
+
+```
+I asked my friends to encrypt our secret flag before sending it to me, but instead of using my key, they've all used their own! Can you help?
+```
+
+
+
