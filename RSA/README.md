@@ -297,7 +297,7 @@ ct = 449812307182121836042747859257931454426554650252645540460282513111644941274
 
 ### Solution :
 
-I realised later that I overthought this and I ciphertext = plaintext \
+I realised later that I overthought this and it was as easy as ciphertext = plaintext \
 but oh well, still got the flag. here's what I did \
 so e = 1
 and we know, e*d = 1%phi
