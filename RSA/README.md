@@ -643,3 +643,15 @@ print(f'N = {hex(N)}')
 print(f'e = {hex(e)}')
 print(f'c = {hex(c)}')
 ```
+
+### Solution :
+
+So similar to `everything is big`, I figured there wasn't much difference... e was even being decided based on the condition :
+![image](https://github.com/IC3lemon/CryptoHack/assets/150153966/0520cc6e-d922-42d6-970e-6e4ba68ec8f2)
+
+So I just re-used my weiners attack script from above. \
+it worked, but..
+![image](https://github.com/IC3lemon/CryptoHack/assets/150153966/b9b9104d-0659-4059-b49e-076b84a751ea)
+
+from the flag I figured I was supposed to use boneh's for this. \
+So I set out looking for how boneh works.
