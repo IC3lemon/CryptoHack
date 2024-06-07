@@ -892,3 +892,205 @@ pt = pow(c,d,n)
 print(long_to_bytes(pt))
 ```
 ![image](https://github.com/IC3lemon/CryptoHack/assets/150153966/b71f2208-26d6-41b3-a6aa-5982612d714a)
+
+
+<br><br><br>
+***
+<br><br><br>
+
+# Fast Primes
+
+### Description :
+```
+I need to produce millions of RSA keys quickly and the standard way just doesn't cut it. Here's yet another fast way to generate primes which has actually resisted years of review.
+```
+
+### Solution :
+So few things going on here : \
+1. primes generated using this method called Sieve of Sundaram, which has been well explained in the function itself \
+```python
+def sieve(maximum=10000):
+    # In general Sieve of Sundaram, produces primes smaller
+    # than (2*x + 2) for a number given number x. Since
+    # we want primes smaller than maximum, we reduce maximum to half
+    # This array is used to separate numbers of the form
+    # i+j+2ij from others where 1 <= i <= j
+    marked = [False]*(int(maximum/2)+1)
+
+    # Main logic of Sundaram. Mark all numbers which
+    # do not generate prime number by doing 2*i+1
+    for i in range(1, int((math.sqrt(maximum)-1)/2)+1):
+        for j in range(((i*(i+1)) << 1), (int(maximum/2)+1), (2*i+1)):
+            marked[j] = True
+
+    # Since 2 is a prime number
+    primes.append(2)
+
+    # Print other primes. Remaining primes are of the
+    # form 2*i + 1 such that marked[i] is false.
+    for i in range(1, int(maximum/2)):
+        if (marked[i] == False):
+            primes.append(2*i + 1)
+    
+def get_primorial(n):
+    result = 1
+    for i in range(n):
+        result = result * primes[i]
+    return result
+
+
+def get_fast_prime():
+    M = get_primorial(40)
+    while True:
+        k = random.randint(2**28, 2**29-1)
+        a = random.randint(2**20, 2**62-1)
+        p = k * M + pow(e, a, M)
+
+        if is_prime(p):
+            return p
+```
+2. we been given a publickey, an actual .pem format one.
+
+Learnt how to extract info from rsa .pem publickey in CryptoHack General Challenges. \
+I did just that, got N, factored and regular rsa decrypted.. but : \
+![image](https://github.com/IC3lemon/CryptoHack/assets/150153966/e816e091-8071-4968-ba0f-0c1e5dbed274)
+
+absolute bullshite. \
+I went through the code and a while later I think I know whats wrong : \
+![image](https://github.com/IC3lemon/CryptoHack/assets/150153966/cfee1be3-dd07-4719-b798-54f1a93a6e89)
+`PKCS1_OAEP`, that's a padding scheme and it was being used on the ciphertext. \
+I was researching how to undo PCKS1_OAEP padding when I saw this in the code : \
+![image](https://github.com/IC3lemon/CryptoHack/assets/150153966/651502b6-85fb-45ef-87a8-145b6c326dca)
+
+bruh
+
+the decryption's literally there `assert cipher.decrypt(ciphertext) == FLAG`
+
+I did just that \
+```python
+from Crypto.Cipher import PKCS1_OAEP
+from Crypto.PublicKey import RSA
+from Crypto.Util.number import *
+from factordb.factordb import FactorDB
+
+with open(r"C:\Users\madha\Downloads\key_17a08b7040db46308f8b9a19894f9f95.pem", 'r') as f:
+    pubkey = RSA.import_key(f.read())
+
+ct = bytes.fromhex("249d72cd1d287b1a15a3881f2bff5788bc4bf62c789f2df44d88aae805b54c9a94b8944c0ba798f70062b66160fee312b98879f1dd5d17b33095feb3c5830d28")
+n = pubkey.n
+e = pubkey.e
+# print(n)
+
+f = FactorDB(n)
+f.connect()
+primes = f.get_factor_list()
+p,q = primes[0],primes[1]
+
+phi = (p-1)*(q-1)
+d = inverse(e,phi)
+
+key = RSA.construct((n, e, d))
+cipher = PKCS1_OAEP.new(key)
+
+pt = cipher.decrypt(ct)
+print(pt)
+```
+
+![image](https://github.com/IC3lemon/CryptoHack/assets/150153966/aa37e5f9-458f-469b-bb60-d5a84df8b2e8)
+
+
+<br><br><br>
+***
+<br><br><br>
+
+# Ron was Wrong, Whit is Right
+
+### Description :
+```
+Here's a bunch of RSA public keys I gathered from people on the net together with messages that they sent.
+
+As excerpt.py shows, everyone was using PKCS#1 OAEP to encrypt their own messages. It shouldn't be possible to decrypt them, but perhaps there are issues with some of the keys?
+```
+```python
+from Crypto.Cipher import PKCS1_OAEP
+from Crypto.PublicKey import RSA
+
+
+msg = "???"
+
+with open('21.pem') as f:
+    key = RSA.importKey(f.read())
+
+cipher = PKCS1_OAEP.new(key)
+ciphertext = cipher.encrypt(msg)
+
+with open('21.ciphertext', 'w') as f:
+    f.write(ciphertext.hex())
+```
+
+### Solution :
+
+About directly solved this, we know where ciphertext is `21.ciphertext` and we know the publickey `21.pem` \
+and luckily enough N got factorised with factordb. \
+```python
+from Crypto.Util.number import *
+from Crypto.PublicKey import RSA
+from factordb.factordb import FactorDB
+from Crypto.Cipher import PKCS1_OAEP
+
+ct = bytes.fromhex('c62d91677825632cb8ac9d2fbee7490fca70b3f067bd8d811fa446a21001de7943cacafc429b2513d3f20c3224d212ca2937a4a4ea10792a1c498b791e978e4b050b525576bc68421e40d9f420c0b8a07778daf69edf2095bf48222896bb2d6581288ce7a2e7aec15a88a440ff1a1e48beb56f68b4f860d1f64a6ec8cafed90846b7d893bc482df69c8478d5a0d6fc2d043cdd97178740a9eb59d2576b5136200c8ea77e648c88e6c5104ca5d0c6add2fc2c8569ce909f8461e7fa3d901fe67eaeff656399d4751fedba9973e246427e0c7a217f5bdc3edcb5033f17b5ef53419e340355a809eb46f48f538e880abd6f72212b02d3dbf2c4f633a503e648d1a835c4574b23e329e1c51078ea7cbb7533e771899498d4a5760bc0799b7e046f268f098fe0b57de47cd70ccf01ad3c9daec5027f306141bfe7a6c0bd29ee6caf94c7433c25e34ee974005e2360337cb6b3cec5eaf5d31d19f01435f4cdcaa455a18e78dee078395b8ad14b9c3a0d817dc1e3109c7b8af35ab3a5950bf47d5e621f9373ef421540052aac307ecea91f9c29c14bfd81b41d4c5a9b34a8ec2fa1ae06c3d881f39286c3d8dbb1849602fecc27bb135f7dd443e2598d247d1182d350b04be1ac0a734cb0e852a36902d88066ac375a35e279b126e413a97aaa35a0ba933f7b8d574c298332ce428c181464b240709a414af1b77103441b6ccfd0790eccea5926844054903c83f4cb415d600a6b7bc771c9e7a86394a2b427ebe8edec08b8095f561827716898e11caf6f0fe562af8a69f7b6469f0e86bdcc32f429f10821c763b34307efc5b2ae7fd524a07e5d0b762c096f025a3f240fb7bd3554582dcce32c175867d93970b0422e17870ec58f2a305545a3d284b3abb2d21a45ad8fd5faed0dc66312a5aa2f994606a51cd6682acd48ea3fb883f0611e1e5c2fb4047b5c80815ba5d3bcfefaf121bfde4d5c91ee27bb899ef0d29fa5c6dc4223ac2bfcff0217d08579a13e9b02dc97aa2622df62eeaaa38bb3bd087cdd209f03e8926a951e90eaa0f678a252a067ac66402a4c85865931689ed3b33f9f6de0c499f140ef508dfba6007a607a271dcbec18a61f7488bba34d143f93bc259310ffbf23f3391734d8d8811a4be8abf6382e55c2ccbfd80b1559d907fd8d46e0431cdbcd8fdb06d57973437f7b8ff5efc5a53c80d552e8fe622971f7376eeea35f4df9b32ada93e531a52b63ba13f6b7bf61ab337d6d93feb0e8c8a309dfa7e5f50e8cf9655b73ae64822b50db5312f35f4718b0668305065ea283ddf8f0a4e8f486ee9d119ebc584be1837b3d959a25ace208ffac2fb703390a72d3027b64fdd1955b513c0403f09232efa1794a277e0be3f4f9f3a6fd23c6e52101e723cef5db7a2a18a107cd522379adb40c5ed36b26cdf53a1000d7d576f1157b42aac3d3ee011275')
+with open(r"C:\Users\madha\Downloads\keys_and_messages_701dba5b1a84cb168547ec18227a7740\keys_and_messages\21.pem",'r') as f:
+    key = RSA.import_key(f.read())
+
+n = key.n
+e = key.e
+f = FactorDB(n)
+f.connect()
+primes = f.get_factor_list()
+p,q = primes[0],primes[1]
+phi = (p-1)*(q-1)
+d = inverse(e,phi)
+
+key = RSA.construct((n,e,d))
+cipher = PKCS1_OAEP.new(key)
+print(cipher.decrypt(ct))
+```
+but : \
+![image](https://github.com/IC3lemon/CryptoHack/assets/150153966/9b5c1039-5629-4f0f-b8d3-62a73e55b318)
+https://eprint.iacr.org/2012/064.pdf
+
+After a while of going through this thing, I realised I probably wasn't supposed to solve it like i did. \
+See the thing is, there was this exploit because people started reusing primes, if u had a big enough amount of Ns, \
+you could factor out primes pretty easily by finding GCD(of current N, other Ns) if that gave anything other than 1 or N \
+you would get p, and then q by N//p. \
+I tried out this method and yes : 
+```python
+from Crypto.Util.number import *
+from Crypto.PublicKey import RSA
+from Crypto.Cipher import PKCS1_OAEP
+
+ct = bytes.fromhex('c62d91677825632cb8ac9d2fbee7490fca70b3f067bd8d811fa446a21001de7943cacafc429b2513d3f20c3224d212ca2937a4a4ea10792a1c498b791e978e4b050b525576bc68421e40d9f420c0b8a07778daf69edf2095bf48222896bb2d6581288ce7a2e7aec15a88a440ff1a1e48beb56f68b4f860d1f64a6ec8cafed90846b7d893bc482df69c8478d5a0d6fc2d043cdd97178740a9eb59d2576b5136200c8ea77e648c88e6c5104ca5d0c6add2fc2c8569ce909f8461e7fa3d901fe67eaeff656399d4751fedba9973e246427e0c7a217f5bdc3edcb5033f17b5ef53419e340355a809eb46f48f538e880abd6f72212b02d3dbf2c4f633a503e648d1a835c4574b23e329e1c51078ea7cbb7533e771899498d4a5760bc0799b7e046f268f098fe0b57de47cd70ccf01ad3c9daec5027f306141bfe7a6c0bd29ee6caf94c7433c25e34ee974005e2360337cb6b3cec5eaf5d31d19f01435f4cdcaa455a18e78dee078395b8ad14b9c3a0d817dc1e3109c7b8af35ab3a5950bf47d5e621f9373ef421540052aac307ecea91f9c29c14bfd81b41d4c5a9b34a8ec2fa1ae06c3d881f39286c3d8dbb1849602fecc27bb135f7dd443e2598d247d1182d350b04be1ac0a734cb0e852a36902d88066ac375a35e279b126e413a97aaa35a0ba933f7b8d574c298332ce428c181464b240709a414af1b77103441b6ccfd0790eccea5926844054903c83f4cb415d600a6b7bc771c9e7a86394a2b427ebe8edec08b8095f561827716898e11caf6f0fe562af8a69f7b6469f0e86bdcc32f429f10821c763b34307efc5b2ae7fd524a07e5d0b762c096f025a3f240fb7bd3554582dcce32c175867d93970b0422e17870ec58f2a305545a3d284b3abb2d21a45ad8fd5faed0dc66312a5aa2f994606a51cd6682acd48ea3fb883f0611e1e5c2fb4047b5c80815ba5d3bcfefaf121bfde4d5c91ee27bb899ef0d29fa5c6dc4223ac2bfcff0217d08579a13e9b02dc97aa2622df62eeaaa38bb3bd087cdd209f03e8926a951e90eaa0f678a252a067ac66402a4c85865931689ed3b33f9f6de0c499f140ef508dfba6007a607a271dcbec18a61f7488bba34d143f93bc259310ffbf23f3391734d8d8811a4be8abf6382e55c2ccbfd80b1559d907fd8d46e0431cdbcd8fdb06d57973437f7b8ff5efc5a53c80d552e8fe622971f7376eeea35f4df9b32ada93e531a52b63ba13f6b7bf61ab337d6d93feb0e8c8a309dfa7e5f50e8cf9655b73ae64822b50db5312f35f4718b0668305065ea283ddf8f0a4e8f486ee9d119ebc584be1837b3d959a25ace208ffac2fb703390a72d3027b64fdd1955b513c0403f09232efa1794a277e0be3f4f9f3a6fd23c6e52101e723cef5db7a2a18a107cd522379adb40c5ed36b26cdf53a1000d7d576f1157b42aac3d3ee011275')
+with open(r"C:\Users\madha\Downloads\keys_and_messages_701dba5b1a84cb168547ec18227a7740\keys_and_messages\21.pem",'r') as f:
+    key = RSA.import_key(f.read())
+N = key.n
+e = key.e
+
+for i in range(1,51):
+    with open(rf"C:\Users\madha\Downloads\keys_and_messages_701dba5b1a84cb168547ec18227a7740\keys_and_messages\{i}.pem",'r') as f:
+        key = RSA.import_key(f.read())
+    N_ = key.n
+    if GCD(N,N_) != 1 and GCD(N,N_) != N:
+        p = GCD(N,N_)
+        break
+
+q = N//p
+phi =(p-1)*(q-1)
+d = inverse(e,phi)
+
+key = RSA.construct((N,e,d))
+cipher = PKCS1_OAEP.new(key)
+
+pt = cipher.decrypt(ct)
+print(pt)
+```
+![image](https://github.com/IC3lemon/CryptoHack/assets/150153966/8c4ff831-2cf6-4d48-9ecb-68976b26c005)
