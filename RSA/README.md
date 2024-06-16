@@ -1,4 +1,5 @@
-![image](https://github.com/IC3lemon/CryptoHack/assets/150153966/28022cb9-a035-4a54-b79b-484cee8681af)
+![image](https://github.com/IC3lemon/CryptoHack/assets/150153966/d6e19837-ae39-44cc-ae2f-ba50b95f17bc)
+
 
 
 
