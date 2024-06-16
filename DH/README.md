@@ -2,9 +2,10 @@
 
 
 
-![image](https://github.com/IC3lemon/CryptoHack/assets/150153966/68980530-4a8c-4806-b7f4-a14ceb2bc2ac)
 
 
+
+![image](https://github.com/IC3lemon/CryptoHack/assets/150153966/0ffc237e-9965-4f6c-8546-4d1621c09514)
 
 # Diffie-Hellman Starter 1
 
