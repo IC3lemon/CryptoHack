@@ -224,3 +224,64 @@ Connect at socket.cryptohack.org 13371
 ```
 
 ### Solution :
+
+
+<br><br><br>
+***
+<br><br><br>
+
+# Export Grade
+
+### Description :
+```
+Alice and Bob are using legacy codebases and need to negotiate parameters they both support. You've man-in-the-middled this negotiation step, and can passively observe thereafter. How are you going to ruin their day this time?
+
+Connect at socket.cryptohack.org 13379
+```
+
+### Solution :
+after running the nc once, I understood we could only manipulate the bit size of p in this chall \
+naturally I chose the smallest one, because that would be the one most insecure or factorable \
+![image](https://github.com/IC3lemon/CryptoHack/assets/150153966/02639f76-a577-4963-9781-324029070471)
+
+I figured i was supposed to find the shared secret somehow, find `a` or `b`. \
+I googled around for a while, and saw the `discrete log problem` popping around a lot 
+
+basically if you have `g**a mod p = A` if you know g,p,A, u get the problem of tryna find `a` \
+finding a is harder if p is larger, because then the field to find it through enlarges. \
+There were a bunch of algorithms on solving discrete log problem \
+the `Baby Step Giant Step` , `Pollih-Hellman` etc. \
+https://risencrypto.github.io/PohligHellman/
+
+
+I tried to apply these but everything flew right across the brain \
+A while later I found sage has a built in discrete_log function that literally finds a for `g**a mod p = A` in one line\
+https://cryptohack.gitbook.io/cryptobook/abstract-algebra/groups/untitled \
+I just applied that and yes \
+![image](https://github.com/IC3lemon/CryptoHack/assets/150153966/a4b785dd-57a1-4a99-b01b-b850c291e011)
+
+```python
+from Crypto.Util.number import *
+from Crypto.Cipher import AES 
+import hashlib
+from Crypto.Util.Padding import pad,unpad
+
+a = 2561142517778670228
+p = 0xde26ab651b92a129
+B = 0xb5ea2a8da43a85ec
+
+K = pow(B,a,p)
+
+iv = long_to_bytes(0x7e58ddf42e04271532c11f8d570f8378)
+ct = long_to_bytes(0xf8e4ab49968dac617b6062f5eb8609f43476a39d9d5448a0bd6967ee4278ad2c)
+
+sha1 = hashlib.sha1()
+sha1.update(str(K).encode('ascii'))
+key = sha1.digest()[:16]
+
+cipher = AES.new(key ,AES.MODE_CBC, iv)
+flag = cipher.decrypt(ct)
+print(flag)
+```
+
+![image](https://github.com/IC3lemon/CryptoHack/assets/150153966/fbc765b0-66c1-4b11-b2b4-1b5590680a25)
