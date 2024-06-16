@@ -224,6 +224,43 @@ Connect at socket.cryptohack.org 13371
 ```
 
 ### Solution :
+again, we got p,g,A,B but we need key to crack the aes. \
+from the description, chall name and the fact that we could manipulate what alice and bob were recieving, I felt it was hinting that we \
+gotta somehow manipulate their inputs to get key \
+so `A = g**a mod p` \
+`B = g**b mod p` \
+`K = A**b = B**a = g**(ab) mod p` \
+The encryption with aes is being done after alice recieves bob's `B` \
+So i figured if we play with bob's `B` we can crack the shared key \
+I then sent `B = 0` to Alice \
+so alice would now compute `K = B**a` => `K = 0**a` \
+=> `K = 0`
+
+we now know K \
+we now get flag \
+![image](https://github.com/IC3lemon/CryptoHack/assets/150153966/4f00d058-4b4d-4c4f-ae53-12563f29c578)
+
+```python
+from Crypto.Util.number import *
+from Crypto.Cipher import AES 
+import hashlib
+from Crypto.Util.Padding import pad,unpad
+
+
+K = 0
+iv = long_to_bytes(0x2778c63cabb9b4f59c0c58c3b06c59a6)
+ct = long_to_bytes(0x5602771ecc05d83145b0eb640b1ecf37a1a0b953fee8468fbc9cb1c231d9f06c)
+
+sha1 = hashlib.sha1()
+sha1.update(str(K).encode('ascii'))
+key = sha1.digest()[:16]
+
+cipher = AES.new(key ,AES.MODE_CBC, iv)
+flag = cipher.decrypt(ct)
+print(flag)
+```
+Yessir \
+![image](https://github.com/IC3lemon/CryptoHack/assets/150153966/1ad3aeda-e186-4551-a6ee-e0a6b58b32a3)
 
 
 <br><br><br>
