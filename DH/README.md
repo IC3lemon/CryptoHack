@@ -1,4 +1,5 @@
-![image](https://github.com/IC3lemon/CryptoHack/assets/150153966/6a4bfc9f-642e-463b-830b-4de623986f4d)
+![image](https://github.com/IC3lemon/CryptoHack/assets/150153966/10564e92-7e7d-41b7-833c-0dabb9734960)
+
 
 
 
@@ -484,3 +485,51 @@ print(unpad(flag,16))
 ```
 
 ![image](https://github.com/IC3lemon/CryptoHack/assets/150153966/5e94870a-04e7-409f-9092-962417ba0107)
+
+
+<br><br><br>
+***
+<br><br><br>
+
+# Static Client
+
+### Description :
+```
+You've just finished eavesdropping on a conversation between Alice and Bob. Now you have a chance to talk to Bob. What are you going to say?
+
+Connect at socket.cryptohack.org 13373
+```
+
+### Solution :
+so on connecting, as usual, we get p,g,A,B, and then Alice gives a iv and ciphertext accordingly. \
+After that bob asks for g,p,A based on which he shares B, iv and ciphertext \
+so we could control what g,p,A is sent to bob to manipulate his B, iv and ciphertext \
+we need to get shared key i.e. `A**b mod p` somehow \
+and bob also calculates B with `g**b mod p` \
+we already know A, and we can manipulate g. \
+So I send bob `g=A` the B then generated should be equal to the shared secret \
+with that in mind : \
+
+![image](https://github.com/IC3lemon/CryptoHack/assets/150153966/d674b6e1-0f5b-4105-9d3f-092b08f606a7)
+
+```python
+from Crypto.Util.number import *
+from Crypto.Cipher import AES 
+import hashlib
+from Crypto.Util.Padding import pad,unpad
+
+
+K = 0xce5df4ad02bfe1e793b0499baac0dc34d2eb49c5a1c440136327ac9ca5e2464db19e261fedcb100f4642bfa6abed838e637b15915b6fd3f3595c7e3f9b4a4c296b36d03e3468eba18dafd7a35f3c4a1ea0f4c0aa4aa0ebe63b4f11590c3afed2aff63a517c6a4fbea15d8ca3cb67473293976861cdb3a70dbc207183c9396cfc1d06997e25d99655ddc7aadd4f89f4375bc345457c0af9e29abfbd9c636c72cb8a65cd757dc393974390a3cf2163f06e32e4d4ef32d916fec386124c8d296584
+iv = long_to_bytes(0x852671dad767cdc36b2dd0a47fe4c038)
+ct = long_to_bytes(0x0e1e635b76bf36bb7f0173848a0dcba3340a259e5104efc593ab2c65188953be)
+
+sha1 = hashlib.sha1()
+sha1.update(str(K).encode('ascii'))
+key = sha1.digest()[:16]
+
+cipher = AES.new(key ,AES.MODE_CBC, iv)
+flag = cipher.decrypt(ct)
+print(flag)
+```
+
+![image](https://github.com/IC3lemon/CryptoHack/assets/150153966/114f8091-a6d7-4ff8-b2b0-55d314267e68)
